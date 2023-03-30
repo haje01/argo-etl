@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: minio
+spec:
+  # MinIO 타입
+  minio:
+    # Put 이벤트
+    put:
+      bucket:
+        # 대상 버킷 이름
+        name: etlproj
+      # 서비스 엔드포인트
+      endpoint: minio:9000
+      # 구독할 MinIO 이벤트 리스트 
+      # (참고 https://docs.minio.io/docs/minio-bucket-notification-guide.html)
+      events:
+      - s3:ObjectCreated:Put
+      # input 접두어 아래 .csv 로 끝나는 파일만 대상
+      filter:
+        prefix: "input/"
+        suffix: ".csv"
+      # 커넥션 타입
+      insecure: true
+      # MinIO 키가 있는 Secret 리소스 정보
+      accessKey:
+        name: minio
+        key: root-user
+      secretKey:
+        name: minio
+        key: root-password

@@ -1,0 +1,75 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: minio
+spec:
+  template:
+    # 앞서 만들어둔 Service Account 이용
+    serviceAccountName: operate-workflow-sa
+  # 의존하는 이벤트
+  dependencies:
+  - name: minio-dep
+    eventSourceName: minio
+    eventName: put
+  triggers:
+  - template:
+      name: minio-workflow-trigger
+      k8s:
+        # 컨테이너에 마운트된 ETL 워크플로우 실행 (생성) 
+        operation: create
+        source:
+          resource: 
+            # 트리거 발생시 호출될 워크플로우 정의
+            apiVersion: argoproj.io/v1alpha1
+            kind: Workflow
+            metadata:
+              generateName: minio-etl-parq-  # 워크플로우 생성 이름 
+            spec:
+              # 시작 템플릿 지정
+              entrypoint: etl
+              # 인자값. 버킷과 키 (이벤트가 발생될 때 건네진다.)
+              arguments:
+                parameters:
+                - name: bucket
+                - name: key
+              # MinIO ETL 템플릿을 정의 
+              templates:
+              - name: etl
+                inputs:
+                  # 매개변수
+                  parameters:
+                  - name: bucket
+                  - name: key
+                container:
+                  image: minio-etl-parq
+                  command: [python]
+                  args: ['/etl.py', '{{inputs.parameters.bucket}}', '{{inputs.parameters.key}}']
+                  # MinIO 사용자 및 암호를 Secret 에서 환경변수로 전달 
+                  env: 
+                  - name: MINIO_USER
+                    valueFrom:
+                      secretKeyRef:
+                        name: minio
+                        key: root-user
+                  - name: MINIO_PASSWD
+                    valueFrom:
+                      secretKeyRef:
+                        name: minio 
+                        key: root-password
+                outputs:
+                  # 결과 파일에서 출력 아티팩트 생성 
+                  artifacts:
+                  - name: output-art            # 출력 아티팩트 이름 
+                    path: /tmp/output.parquet   # 출력 아티팩트 소스 파일
+                    archive: {}  # 파케이 파일의 경우 별도 압축하지 않음 
+            
+        # 매개 변수. MinIO 이벤트 정보 (Notification) 를 읽어 워크플로우의 인자값을 덮어 씀
+        parameters:
+        - src:
+            dependencyName: minio-dep
+            dataKey: notification.0.s3.bucket.name
+          dest: spec.arguments.parameters.0.value
+        - src:
+            dependencyName: minio-dep
+            dataKey: notification.0.s3.object.key
+          dest: spec.arguments.parameters.1.value

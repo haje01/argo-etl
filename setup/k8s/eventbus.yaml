@@ -1,0 +1,11 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventBus
+metadata:
+  name: default
+spec:
+  nats:
+    native:
+      # 최소 3개 이상
+      replicas: 3
+      # 인증 전략
+      auth: none
