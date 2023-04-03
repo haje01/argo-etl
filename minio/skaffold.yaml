@@ -11,6 +11,7 @@ build:
 manifests:
   rawYaml:
   - k8s/*.yaml
+# 센서의 이미지에 태그 적용 
 resourceSelector:
   allow:
   - groupKind: Sensor.argoproj.io

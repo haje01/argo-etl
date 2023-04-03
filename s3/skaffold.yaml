@@ -2,7 +2,16 @@ apiVersion: skaffold/v4beta3
 kind: Config
 build:
   artifacts:
-  - image: skaffold-example
-manifests:
-  rawYaml:
-  - k8s-pod.yaml
+  - image: s3-etl
+    context: etl
+deploy:
+  helm:
+    releases:
+    - name: s3-setup
+      chartPath: setup
+      setValueTemplates:
+        awsAccessKey: "{{ .AWS_ACCESS_KEY_ID }}"
+        awsSecretKey: "{{ .AWS_SECRET_ACCESS_KEY }}"
+        project: "{{ .project }}"
+        s3bucket: "{{ .s3bucket }}"
+        s3prefix: "{{ .s3prefix }}"

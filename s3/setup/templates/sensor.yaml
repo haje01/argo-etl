@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: s3
+spec:
+  template:
+    # 앞서 만들어둔 Service Account 이용
+    serviceAccountName: operate-workflow-sa
+  # 의존하는 이벤트
+  dependencies:
+  - name: s3-dep
+    eventSourceName: s3
+    eventName: put
+  triggers:
+  - template:
+      name: s3-workflow-trigger
+      k8s:
+        # 컨테이너에 마운트된 ETL 워크플로우 실행 (생성) 
+        operation: create
+        source:
+          resource: 
+            # 트리거 발생시 호출될 워크플로우 정의
+            apiVersion: argoproj.io/v1alpha1
+            kind: Workflow
+            metadata:
+            generateName: s3-  # 워크플로우 생성 이름 
+            spec:
+            # 시작 템플릿
+            entrypoint: etl
+            # 인자값. 버킷과 키 (이벤트가 발생될 때 건네진다.)
+            arguments:
+                parameters:
+                - name: snsmsg
+            # ETL 템플릿을 정의 
+            templates:
+            - name: etl
+              inputs:
+                # 매개변수
+                parameters:
+                - name: snsmsg
+              container:
+                image: s3-etl
+                command: [python]
+                args: ['/etl.py', '{{ "{{" }} inputs.parameters.snsmsg {{ "}}" }}']
+                # 대상 S3 버킷에 읽기/쓰기 가ccessKey / SecretKey 를 Secret 에서 환경변수로 전달 
+                env: 
+                - name: S3_ACCESS_KEY
+                  valueFrom:     # 환경 변수의 값 소스
+                  secretKeyRef:
+                      name: s3-secret 
+                      key: accessKey
+                - name: S3_SECRET_KEY
+                  valueFrom:     # 환경 변수의 값 소스
+                  secretKeyRef:
+                      name: s3-secret
+                      key: secretKey
+        # 매개 변수. MinIO 이벤트 정보 (Notification) 를 읽어 워크플로우의 인자값을 덮어 씀
+        parameters:
+        - src:
+            dependencyName: s3-dep
+            dataKey: notification.0.s3.bucket.name
+          dest: spec.arguments.parameters.0.value
+        - src:
+            dependencyName: s3-dep
+            dataKey: notification.0.s3.object.key
+          dest: spec.arguments.parameters.1.value

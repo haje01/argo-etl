@@ -1,0 +1,15 @@
+postgresql:
+  enabled: false
+ingress:
+  enabled: true
+  hostname: '"*.ap-northeast-2.elb.amazonaws.com"'
+  path: /*
+  # extraHosts:
+  # - name: "*.ap-northeast-2.elb.amazonaws.com"
+  #   path: /*
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/group.name: public
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'   

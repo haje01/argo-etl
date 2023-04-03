@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: EventSource
 metadata:
-  name: etlproj
+  name: s3
 spec:
   service:
     ports:
@@ -10,21 +10,20 @@ spec:
   sns:
     put:
       # SNS 주제의 ARN
-      topicArn: <생성한 SNS 주제의 ARN>
+      topicArn: {{ .Values.topicArn }}
       # 훅은 이벤트소스에서 실행되는 HTTP 서버 설정을 포함하는데, AWS 는 이곳으로 이벤트를 보낸다.
       webhook:
         # 접속 정보
         endpoint: "/"
         port: "12000"
         method: POST
-        # AWS 에 등록할 이벤트소스 서비스 URL (여기서는 Public IP).
-        url: http://<인스턴스 URL>
+        url: /
       # 생성한 IAM 사용자의 증명 정보 
       accessKey:
-        name: sns-secret
+        name: s3-iam-secret
         key: accessKey
       secretKey:
-        name: sns-secret
+        name: s3-iam-secret
         key: secretKey
       # AWS 리전
       region: ap-northeast-2

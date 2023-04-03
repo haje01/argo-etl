@@ -47,14 +47,14 @@ profiles:
       localPort: 8046
   # AWS EKS 인프라 설치
 - name: eks
-  # build:
-    # artifacts:
-    # - image: eks-init
-    #   context: eks
-    #   # 이미지 저장소에 push 가능하도록 login 
-    #   hooks:
-    #     before:
-    #     - command: ['sh', '-c', ' aws ecr get-login-password | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.ap-northeast-2.amazonaws.com']
+  build:
+    artifacts:
+    - image: eks-init
+      context: eks
+      # 이미지 저장소에 push 가능하도록 login 
+      hooks:
+        before:
+        - command: ['sh', '-c', ' aws ecr get-login-password | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.ap-northeast-2.amazonaws.com']
   manifests:
     rawYaml:
     - k8s/*.yaml
@@ -63,16 +63,11 @@ profiles:
       # 배포전 처리 
       hooks: 
         before:
-        - host:
-            command: ["sh", "eks/init.sh"]
-            os: [darwin, linux]
+          - host:
+              command: ["sh", "eks/init.sh"]
+              os: [darwin, linux]
+      # 포트포워딩이 필요한 설치부터 
       releases:
-      - name: awslb
-        repo: https://aws.github.io/eks-charts
-        remoteChart: aws-load-balancer-controller
-        namespace: kube-system
-        valuesFiles:
-        - eks/awslb-values.yaml
       - name: aev 
         repo: https://argoproj.github.io/argo-helm
         remoteChart: argo-events

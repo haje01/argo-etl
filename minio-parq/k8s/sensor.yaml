@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
-  name: minio
+  name: minio-parq
 spec:
   template:
     # 앞서 만들어둔 Service Account 이용
@@ -9,7 +9,7 @@ spec:
   # 의존하는 이벤트
   dependencies:
   - name: minio-dep
-    eventSourceName: minio
+    eventSourceName: minio-parq
     eventName: put
   triggers:
   - template:
@@ -23,7 +23,7 @@ spec:
             apiVersion: argoproj.io/v1alpha1
             kind: Workflow
             metadata:
-              generateName: minio-etl-parq-  # 워크플로우 생성 이름 
+              generateName: minio-parq-  # 워크플로우 생성 이름 
             spec:
               # 시작 템플릿 지정
               entrypoint: etl
@@ -41,7 +41,7 @@ spec:
                   - name: bucket
                   - name: key
                 container:
-                  image: minio-etl-parq
+                  image: minio-parq
                   command: [python]
                   args: ['/etl.py', '{{inputs.parameters.bucket}}', '{{inputs.parameters.key}}']
                   # MinIO 사용자 및 암호를 Secret 에서 환경변수로 전달 

@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/group.name: public
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 12000}]'
+  labels:
+    app.kubernetes.io/component: eventsource
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: Helm
+  name: {{ .Release.Name }}-eventsource
+spec:
+  rules:
+  - host: '*.ap-northeast-2.elb.amazonaws.com'
+    http:
+      paths:
+      - backend:
+          service:
+            name: s3-eventsource-svc
+            port: 
+              number: 12000
+        path: /*
+        pathType: ImplementationSpecific
