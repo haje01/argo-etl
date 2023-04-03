@@ -103,10 +103,10 @@ else
     echo "Create IAM User '$IAM_USER'"
     aws iam create-user --user-name $IAM_USER
     # 차트 설치를 위해 키 저장
-    aws iam create-access-key --user-name $IAM_USER > iam-key.json 
-    echo "accessKey: "$(jq '.AccessKey.AccessKeyId' iam-key.json | base64) >> setup/values.yaml
-    echo "secretKey: "$(jq '.AccessKey.SecretAccessKey' iam-key.json | base64) >> setup/values.yaml
-    # rm iam-key.json
+    aws iam create-access-key --user-name $IAM_USER > /tmp/iam-key.json 
+    echo "accessKey: "$(jq '.AccessKey.AccessKeyId' /tmp/iam-key.json | base64) >> setup/values.yaml
+    echo "secretKey: "$(jq '.AccessKey.SecretAccessKey' /tmp/iam-key.json | base64) >> setup/values.yaml
+    rm /tmp/iam-key.json
 fi 
 
 # 유저가 SNS 토픽 이벤트를 받을유저 정책 있도록 정책 적용
