@@ -5,8 +5,6 @@ S3_BUCKET=${S3_BUCKET?"Need to set S3_BUCKET"}
 # 대상 S3 버킷 ARN
 S3_BUCKET_ARN=$(echo "arn::aws::s3:::$S3_BUCKET")
 echo "Target Bucket ARN: $S3_BUCKET_ARN"
-# 대상 S3 접두사
-S3_PREFIX=${S3_PREFIX?"Need to set S3_PREFIX"}
 # SNS 토픽 이름 
 SNS_TOPIC="$PROJECT-s3-noti"
 # 토픽 정책 ID
@@ -21,7 +19,7 @@ ret=$(aws sns list-topics --query "Topics[?contains(TopicArn, \`$SNS_TOPIC\`)].T
 echo $ret
 if [ -n "$ret" ]; then
     TOPIC_ARN=$ret
-    echo "Delete SNS topic : $SNS_TOPIC"
+    echo "Delete SNS topic '$SNS_TOPIC'"
     aws sns delete-topic --topic-arn $TOPIC_ARN
 else
     echo "Warning: SNS topic '$SNS_TOPIC' not exists."
@@ -51,4 +49,7 @@ else
 fi 
 
 # Helm 차트 변수 파일 제거 
-rm -f setup/values.yaml
+rm -f setup/secret-values.yaml
+
+# 커스텀 리소스 제거 
+kubectl delete eventsource s3 --ignore-not-found

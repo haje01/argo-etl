@@ -15,6 +15,8 @@ deploy:
     releases:
     - name: s3-setup
       chartPath: setup
+      valuesFiles:
+      - setup/secret-values.yaml
       setValueTemplates:
         awsAccessKey: "{{ .AWS_ACCESS_KEY_ID }}"
         awsSecretKey: "{{ .AWS_SECRET_ACCESS_KEY }}"

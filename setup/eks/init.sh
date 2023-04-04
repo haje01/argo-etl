@@ -27,7 +27,7 @@ fi
 
 # 3. 위 정책을 가지는 `AmazonEKSLoadBalancerControllerRole` 역할을 만들고,
 # 그것과 연결된 쿠버네티스 서비스 어카운트를 생성
-ret=$(kubectl get sa aws-load-balancer-controller -n kube-system -o custom-columns=NAME:.metadata.name --no-headers)
+ret=$(kubectl get sa aws-load-balancer-controller -n kube-system --ignore-not-found -o custom-columns=NAME:.metadata.name --no-headers)
 if [ "$ret" = "aws-load-balancer-controller" ]; then 
     echo "IAM Service Account already exists."
 else
