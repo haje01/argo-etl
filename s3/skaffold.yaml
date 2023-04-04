@@ -6,6 +6,12 @@ build:
     context: etl
 deploy:
   helm:
+    # 패키지 설치전 처리 
+    hooks: 
+      before:
+      - host:
+          command: ["sh", "init.sh"]
+          os: [darwin, linux]  
     releases:
     - name: s3-setup
       chartPath: setup

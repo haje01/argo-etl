@@ -1,3 +1,0 @@
-clusterName: prod
-serviceAccount.create: false
-serviceAccount.name: aws-load-balancer-controller

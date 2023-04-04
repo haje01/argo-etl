@@ -47,7 +47,6 @@ profiles:
       localPort: 8046
   # AWS EKS 인프라 설치
 - name: eks
-  # build:
     # artifacts:
     # - image: eks-init
     #   context: eks
@@ -60,7 +59,7 @@ profiles:
     - k8s/*.yaml
   deploy:
     helm:
-      # 배포전 처리 
+      # 패키지 설치전 처리 
       hooks: 
         before:
         - host:
@@ -71,8 +70,10 @@ profiles:
         repo: https://aws.github.io/eks-charts
         remoteChart: aws-load-balancer-controller
         namespace: kube-system
-        valuesFiles:
-        - eks/awslb-values.yaml
+        setValueTemplates:
+          clusterName: "{{ .EKS_CLUSTER }}"
+          serviceAccount.create: false
+          serviceAccount.name: aws-load-balancer-controller        
       - name: aev 
         repo: https://argoproj.github.io/argo-helm
         remoteChart: argo-events
@@ -87,5 +88,4 @@ profiles:
       #     awsAccessKey: "{{ .AWS_ACCESS_KEY_ID }}"
       #     awsSecretKey: "{{ .AWS_SECRET_ACCESS_KEY }}"
     kubectl: {}
-
-
+  
