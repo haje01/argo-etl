@@ -17,10 +17,10 @@ deploy:
       chartPath: setup
       # 무한 배포를 막기 위해 변수별 파일 이용 
       valuesFiles:
-      - svalues/topic-arn.yaml
-      - svalues/access-key.yaml
-      - svalues/secret-key.yaml
-      - svalues/ingress-addr.yaml
+      - svals/topic-arn.yaml
+      - svals/access-key.yaml
+      - svals/secret-key.yaml
+      - svals/ingress-addr.yaml
       # setValueTemplates:
       #   awsAccessKey: "{{ .AWS_ACCESS_KEY_ID }}"
       #   awsSecretKey: "{{ .AWS_SECRET_ACCESS_KEY }}"

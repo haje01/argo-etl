@@ -49,7 +49,7 @@ else
 fi 
 
 # Helm 차트 변수 파일 제거 
-rm -f svalues/*.yaml
+rm -f svals/*.yaml
 
 # 커스텀 리소스 제거 
 kubectl delete eventsource s3 --ignore-not-found

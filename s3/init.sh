@@ -33,7 +33,7 @@ if [ -z "$ret" ]; then
     ret=$(aws sns create-topic --name $SNS_TOPIC)
     TOPIC_ARN=$(echo $ret | jq -r '.TopicArn')
     # 차트 설치를 위한 value 파일 생성 
-    echo "topicArn: $TOPIC_ARN" > svalues/topic-arn.yaml
+    echo "topicArn: $TOPIC_ARN" > svals/topic-arn.yaml
 else
     echo "SNS topic '$SNS_TOPIC' already exists."
     TOPIC_ARN="arn:aws:sns:ap-northeast-2:$AWS_ACCOUNT_ID:$SNS_TOPIC"
@@ -106,8 +106,8 @@ else
     aws iam create-user --user-name $IAM_USER
     # 차트 설치를 위해 키 저장
     aws iam create-access-key --user-name $IAM_USER > /tmp/iam_key.json 
-    echo "accessKey: $(jq '.AccessKey.AccessKeyId' /tmp/iam_key.json)" > svalues/access-key.yaml
-    echo "secretKey: $(jq '.AccessKey.SecretAccessKey' /tmp/iam_key.json)" > svalues/secret-key.yaml
+    echo "accessKey: $(jq '.AccessKey.AccessKeyId' /tmp/iam_key.json)" > svals/access-key.yaml
+    echo "secretKey: $(jq '.AccessKey.SecretAccessKey' /tmp/iam_key.json)" > svals/secret-key.yaml
     rm /tmp/iam_key.json
 fi 
 
@@ -139,7 +139,7 @@ echo "Fetch Ingress address."
 ret=$(kubectl get ingress -l 'app.kubernetes.io/name=argo-workflows' --no-headers | awk '{print $4}')
 echo "ingressAddr: $ret" > /tmp/ingress-addr.yaml
 # 이전 파일과 다를 때만 복사 (무한 배포 방지)
-if [ ! -f svalues/ingress-addr.yaml ] || ! cmp -s /tmp/ingress-addr.yaml svalues/ingress-addr.yaml; then 
-    echo "Overwrite to svalues/ingress-addr.yaml"
-    mv /tmp/ingress-addr.yaml svalues/ingress-addr.yaml
+if [ ! -f svals/ingress-addr.yaml ] || ! cmp -s /tmp/ingress-addr.yaml svals/ingress-addr.yaml; then 
+    echo "Overwrite to svals/ingress-addr.yaml"
+    mv /tmp/ingress-addr.yaml svals/ingress-addr.yaml
 fi 
