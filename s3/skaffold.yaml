@@ -15,11 +15,15 @@ deploy:
     releases:
     - name: s3-setup
       chartPath: setup
+      # 무한 배포를 막기 위해 변수별 파일 이용 
       valuesFiles:
-      - setup/secret-values.yaml
-      setValueTemplates:
-        awsAccessKey: "{{ .AWS_ACCESS_KEY_ID }}"
-        awsSecretKey: "{{ .AWS_SECRET_ACCESS_KEY }}"
-        project: "{{ .project }}"
-        s3bucket: "{{ .s3bucket }}"
-        s3prefix: "{{ .s3prefix }}"
+      - svalues/topic-arn.yaml
+      - svalues/access-key.yaml
+      - svalues/secret-key.yaml
+      - svalues/ingress-addr.yaml
+      # setValueTemplates:
+      #   awsAccessKey: "{{ .AWS_ACCESS_KEY_ID }}"
+      #   awsSecretKey: "{{ .AWS_SECRET_ACCESS_KEY }}"
+      #   project: "{{ .project }}"
+      #   s3bucket: "{{ .s3bucket }}"
+      #   s3prefix: "{{ .s3prefix }}"

@@ -17,7 +17,7 @@ spec:
         endpoint: "/"
         port: "12000"
         method: POST
-        url: s3
+        url: http://{{ .Values.ingressAddr }}:12000
       # 생성한 IAM 사용자의 증명 정보 
       accessKey:
         name: s3-iam-secret

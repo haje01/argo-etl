@@ -14,9 +14,9 @@ NOTI_ID="$PROJECT-s3-noti"
 # 토픽 정책 ID
 POLICY_ID="$PROJECT-s3-noti-policy"
 # IAM 유저 이름 
-IAM_USER="$PROJECT-noti-bot"
+IAM_USER="$PROJECT-sns-noti"
 # IAM 유저 정책 이름
-USER_POLICY="$PROJECT-noti-bot-policy"
+USER_POLICY="$PROJECT-sns-noti-policy"
 
 # 버킷 존재 여부 확인 
 ret=$(aws s3api head-bucket --bucket "$S3_BUCKET" 2>&1)
@@ -32,20 +32,17 @@ if [ -z "$ret" ]; then
     echo "Create SNS topic : $SNS_TOPIC"
     ret=$(aws sns create-topic --name $SNS_TOPIC)
     TOPIC_ARN=$(echo $ret | jq -r '.TopicArn')
+    # 차트 설치를 위한 value 파일 생성 
+    echo "topicArn: $TOPIC_ARN" > svalues/topic-arn.yaml
 else
     echo "SNS topic '$SNS_TOPIC' already exists."
     TOPIC_ARN="arn:aws:sns:ap-northeast-2:$AWS_ACCOUNT_ID:$SNS_TOPIC"
 fi
 echo "Topic ARN: $TOPIC_ARN"
-# 차트 설치를 위한 value 파일 생성 
-echo "# This file should be kept as secret!" > setup/secret-values.yaml
-echo "topicArn: $TOPIC_ARN" >> setup/secret-values.yaml 
 
-ret=$(aws sns get-topic-attributes --topic-arn $TOPIC_ARN --query 'Attributes.Policy')
-if [ "$ret" = "null" ]; then 
-    # 토픽 정책 설정 
-    echo "Set topic policy."
-    cat << EOF > /tmp/sns_policy.json 
+# 토픽 기본 정책을 덮어쓰기 위해 매번 정책 설정
+echo "Set topic policy."
+cat << EOF > /tmp/sns_policy.json 
 {
     "Version": "2008-10-17",
     "Id": "$POLICY_ID",
@@ -68,10 +65,7 @@ if [ "$ret" = "null" ]; then
     ]
 }
 EOF
-    aws sns set-topic-attributes --topic-arn $TOPIC_ARN --attribute-name Policy --attribute-value "$(cat /tmp/sns_policy.json)"
-else 
-    echo "SNS Topic $SNS_TOPIC already has 'Policy' attribute."
-fi 
+aws sns set-topic-attributes --topic-arn $TOPIC_ARN --attribute-name Policy --attribute-value "$(cat /tmp/sns_policy.json)"
 
 ret=$(aws s3api get-bucket-notification-configuration --bucket $S3_BUCKET --query TopicConfigurations)
 if [ "$ret" = "null" ]; then 
@@ -83,7 +77,7 @@ if [ "$ret" = "null" ]; then
         {
             "Id": "$NOTI_ID",
             "TopicArn": "$TOPIC_ARN",
-            "Events": ["s3:ObjectCreated:*"],
+            "Events": ["s3:ObjectCreated:Put"],
             "Filter": {
                 "Key": {
                     "FilterRules": [
@@ -112,14 +106,14 @@ else
     aws iam create-user --user-name $IAM_USER
     # 차트 설치를 위해 키 저장
     aws iam create-access-key --user-name $IAM_USER > /tmp/iam_key.json 
-    echo "accessKey: "$(jq '.AccessKey.AccessKeyId' /tmp/iam_key.json | base64) >> setup/secret-values.yaml
-    echo "secretKey: "$(jq '.AccessKey.SecretAccessKey' /tmp/iam_key.json | base64) >> setup/secret-values.yaml
+    echo "accessKey: $(jq '.AccessKey.AccessKeyId' /tmp/iam_key.json)" > svalues/access-key.yaml
+    echo "secretKey: $(jq '.AccessKey.SecretAccessKey' /tmp/iam_key.json)" > svalues/secret-key.yaml
     rm /tmp/iam_key.json
 fi 
 
 ret=$(aws iam get-user-policy --user-name $IAM_USER --policy-name $USER_POLICY 2>/dev/null)
 if [ $? -ne 0 ]; then 
-    # 유저가 SNS 토픽 이벤트를 받을유저 정책 있도록 정책 적용
+    # 유저가 SNS 토픽 이벤트를 받을 수 있도록 정책 적용
     echo "Apply IAM policy '$USER_POLICY' to IAM user '$IAM_USER'"
     cat << EOF > /tmp/iam_policy.json
 {
@@ -137,4 +131,15 @@ EOF
     aws iam put-user-policy --user-name $IAM_USER --policy-name $USER_POLICY --policy-document file:///tmp/iam_policy.json
 else
     echo "User policy '$USER_POLICY' already exists for '$IAM_USER'."
+fi 
+
+
+# 인그레스 주소 얻기
+echo "Fetch Ingress address."
+ret=$(kubectl get ingress -l 'app.kubernetes.io/name=argo-workflows' --no-headers | awk '{print $4}')
+echo "ingressAddr: $ret" > /tmp/ingress-addr.yaml
+# 이전 파일과 다를 때만 복사 (무한 배포 방지)
+if [ ! -f svalues/ingress-addr.yaml ] || ! cmp -s /tmp/ingress-addr.yaml svalues/ingress-addr.yaml; then 
+    echo "Overwrite to svalues/ingress-addr.yaml"
+    mv /tmp/ingress-addr.yaml svalues/ingress-addr.yaml
 fi 

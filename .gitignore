@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 iam_policy.json
-secret-values.yaml
+s3/svalues/*.yaml

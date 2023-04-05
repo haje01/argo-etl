@@ -10,13 +10,12 @@ SNS_TOPIC="$PROJECT-s3-noti"
 # 토픽 정책 ID
 POLICY_ID="$PROJECT-s3-noti-policy"
 # IAM 유저 이름 
-IAM_USER="$PROJECT-noti-bot"
+IAM_USER="$PROJECT-sns-noti"
 # IAM 유저 정책 이름
-USER_POLICY="$PROJECT-noti-bot-policy"
+USER_POLICY="$PROJECT-sns-noti-policy"
 
 # SNS 토픽 제거
 ret=$(aws sns list-topics --query "Topics[?contains(TopicArn, \`$SNS_TOPIC\`)].TopicArn" --output text)
-echo $ret
 if [ -n "$ret" ]; then
     TOPIC_ARN=$ret
     echo "Delete SNS topic '$SNS_TOPIC'"
@@ -37,19 +36,20 @@ else
     # IAM 유저 Access Key 제거
     for akey in $(aws iam list-access-keys --user-name $IAM_USER --query 'AccessKeyMetadata[].AccessKeyId' --output text); do
         echo "Delete access key '$akey' from IAM user '$IAM_USER'"
-      aws iam delete-access-key --user-name $IAM_USER --access-key-id $akey
+        aws iam delete-access-key --user-name $IAM_USER --access-key-id $akey
     done 
     # IAM 유저 정책  제거
     for policy in $(aws iam list-user-policies --user-name $IAM_USER --query 'PolicyNames' --output text); do
         echo "Delete IAM policy '$policy' from IAM user '$IAM_USER'"
-      aws iam delete-user-policy --user-name $IAM_USER --policy-name $policy 
+        aws iam delete-user-policy --user-name $IAM_USER --policy-name $policy 
     done 
+    sleep 5
     echo "Delete IAM user '$IAM_USER'."
     aws iam delete-user --user-name $IAM_USER
 fi 
 
 # Helm 차트 변수 파일 제거 
-rm -f setup/secret-values.yaml
+rm -f svalues/*.yaml
 
 # 커스텀 리소스 제거 
 kubectl delete eventsource s3 --ignore-not-found
