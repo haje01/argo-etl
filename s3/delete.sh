@@ -29,7 +29,7 @@ echo "Unset bucket notification."
 aws s3api put-bucket-notification-configuration --bucket $S3_BUCKET --notification-configuration '{}'
 
 # Helm 차트 변수 파일 제거 
-rm -f svals/*.yaml
+rm -f vals/*.yaml
 
 # 커스텀 리소스 제거 
 kubectl delete eventsource s3 --ignore-not-found

@@ -17,7 +17,7 @@ deploy:
       chartPath: setup
       # 무한 배포를 막기 위해 변수별 파일 이용 
       valuesFiles:
-      - svals/topic-arn.yaml
-      - svals/ingress-addr.yaml
+      - vals/topic-arn.yaml
+      - vals/ingress-addr.yaml
       setValueTemplates:
         image: '{{.IMAGE_FULLY_QUALIFIED_s3_etl}}'
