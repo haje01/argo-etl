@@ -13,10 +13,8 @@ SNS_TOPIC="$PROJECT-s3-noti"
 NOTI_ID="$PROJECT-s3-noti"
 # 토픽 정책 ID
 POLICY_ID="$PROJECT-s3-noti-policy"
-# IAM 유저 이름 
-IAM_USER="$PROJECT-sns-noti"
-# IAM 유저 정책 이름
-USER_POLICY="$PROJECT-sns-noti-policy"
+# SNS 정책 이름
+SNS_POLICY="$PROJECT-sns-policy"
 # S3 정책 이름
 S3_POLICY="$PROJECT-s3-policy"
 
@@ -35,16 +33,16 @@ if [ -z "$ret" ]; then
     ret=$(aws sns create-topic --name $SNS_TOPIC)
     TOPIC_ARN=$(echo $ret | jq -r '.TopicArn')
     # 차트 설치를 위한 value 파일 생성 
-    echo "topicArn: $TOPIC_ARN" > svals/topic-arn.yaml
+    echo "topicArn: $TOPIC_ARN" > vals/topic-arn.yaml
 else
     echo "SNS topic '$SNS_TOPIC' already exists."
     TOPIC_ARN="arn:aws:sns:ap-northeast-2:$AWS_ACCOUNT_ID:$SNS_TOPIC"
 fi
 echo "Topic ARN: $TOPIC_ARN"
 
-# 토픽 기본 정책을 덮어쓰기 위해 매번 정책 설정
+# 토픽 기본 정책을 덮어쓰기
 echo "Set topic policy."
-cat << EOF > /tmp/sns_policy.json 
+cat << EOF > /tmp/topic_policy.json 
 {
     "Version": "2008-10-17",
     "Id": "$POLICY_ID",
@@ -67,13 +65,10 @@ cat << EOF > /tmp/sns_policy.json
     ]
 }
 EOF
-aws sns set-topic-attributes --topic-arn $TOPIC_ARN --attribute-name Policy --attribute-value "$(cat /tmp/sns_policy.json)"
+aws sns set-topic-attributes --topic-arn $TOPIC_ARN --attribute-name Policy --attribute-value "$(cat /tmp/topic_policy.json)"
 
-ret=$(aws s3api get-bucket-notification-configuration --bucket $S3_BUCKET --query TopicConfigurations)
-if [ "$ret" = "null" ]; then 
-    # 버킷 알림 구성
-    echo "Set bucket notification."
-    cat << EOF > /tmp/notification_config.json
+echo "Set bucket notification."
+cat << EOF > /tmp/notification_config.json
 {
     "TopicConfigurations": [
         {
@@ -94,19 +89,16 @@ if [ "$ret" = "null" ]; then
     ]
 }
 EOF
-    aws s3api put-bucket-notification-configuration --bucket $S3_BUCKET --notification-configuration file:///tmp/notification_config.json
-else 
-    echo "Bucket notification already exists."
-fi 
+aws s3api put-bucket-notification-configuration --bucket $S3_BUCKET --notification-configuration file:///tmp/notification_config.json
 
 # 인그레스 주소 얻기
 ret=$(kubectl get ingress -l 'app.kubernetes.io/name=argo-workflows' --no-headers | awk '{print $4}')
 echo "Ingress address '$ret'"
 echo "ingressAddr: $ret" > /tmp/ingress-addr.yaml
 # 이전 파일과 다를 때만 복사 (무한 배포 방지)
-if [ ! -f svals/ingress-addr.yaml ] || ! cmp -s /tmp/ingress-addr.yaml svals/ingress-addr.yaml; then 
-      echo "Overwrite to svals/ingress-addr.yaml"
-    mv /tmp/ingress-addr.yaml svals/ingress-addr.yaml
+if [ ! -f vals/ingress-addr.yaml ] || ! cmp -s /tmp/ingress-addr.yaml vals/ingress-addr.yaml; then 
+      echo "Overwrite to vals/ingress-addr.yaml"
+    mv /tmp/ingress-addr.yaml vals/ingress-addr.yaml
 fi 
 
 #
@@ -117,10 +109,12 @@ fi
 NODE_GROUP=$(aws eks list-nodegroups --cluster-name $EKS_CLUSTER --quer 'nodegroups[]' --output text)
 NODE_ROLE_ARN=$(aws eks describe-nodegroup --cluster-name $EKS_CLUSTER --nodegroup-name $NODE_GROUP --query 'nodegroup.nodeRole' --output text)
 NODE_ROLE=$(echo "$NODE_ROLE_ARN" | awk -F/ '{print $NF}')
+echo "Node Group $NODE_GROUP"
+echo "Node Role $NODE_ROLE"
 
 # SNS 구독
-echo "Apply SNS policy '$USER_POLICY' to node role '$NODE_ROLE'"
-cat << EOF > /tmp/subscribe_policy.json
+echo "Apply SNS subscribe policy to node role '$NODE_ROLE'"
+cat << EOF > /tmp/sns_policy.json
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -132,7 +126,7 @@ cat << EOF > /tmp/subscribe_policy.json
     ]
 }
 EOF
-aws iam put-role-policy --role-name $NODE_ROLE --policy-name $S3_POLICY --policy-document file:///tmp/subscribe_policy.json
+aws iam put-role-policy --role-name $NODE_ROLE --policy-name $SNS_POLICY --policy-document file:///tmp/sns_policy.json
 # ECR 저장소 읽기
 aws iam attach-role-policy --role-name $NODE_ROLE --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
 # S3 버킷에 읽고 쓰기 
@@ -158,3 +152,6 @@ cat << EOF > /tmp/s3_policy.json
 }
 EOF
 aws iam put-role-policy --role-name $NODE_ROLE --policy-name $S3_POLICY --policy-document file:///tmp/s3_policy.json
+
+# 정책이 적용되게 잠시 대기
+sleep 10

@@ -9,6 +9,7 @@ import pandas as pd
 
 # SNS Message 에서 정보 추출
 SNSMSG = sys.argv[1]
+print(SNSMSG)
 msg = json.loads(SNSMSG)['Message']
 frec = json.loads(msg)['Records'][0]
 BUCKET = frec['s3']['bucket']['name']

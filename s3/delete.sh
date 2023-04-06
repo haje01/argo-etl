@@ -7,12 +7,6 @@ S3_BUCKET_ARN=$(echo "arn::aws::s3:::$S3_BUCKET")
 echo "Target Bucket ARN: $S3_BUCKET_ARN"
 # SNS 토픽 이름 
 SNS_TOPIC="$PROJECT-s3-noti"
-# 토픽 정책 ID
-POLICY_ID="$PROJECT-s3-noti-policy"
-# IAM 유저 이름 
-IAM_USER="$PROJECT-sns-noti"
-# IAM 유저 정책 이름
-USER_POLICY="$PROJECT-sns-noti-policy"
 
 # SNS 토픽 제거
 ret=$(aws sns list-topics --query "Topics[?contains(TopicArn, \`$SNS_TOPIC\`)].TopicArn" --output text)
