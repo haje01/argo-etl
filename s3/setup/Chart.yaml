@@ -1,6 +1,6 @@
 apiVersion: v2
-name: s3-setup
-description: A Setup chart for S3 Notification via SNS
+name: s3-sns
+description: A chart for S3 Notification via SNS
 
 # A chart can be either an 'application' or a 'library' chart.
 #

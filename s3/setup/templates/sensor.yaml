@@ -23,7 +23,7 @@ spec:
             apiVersion: argoproj.io/v1alpha1
             kind: Workflow
             metadata:
-            generateName: s3-  # 워크플로우 생성 이름 
+              generateName: s3-  # 워크플로우 생성 이름 
             spec:
             # 시작 템플릿
             entrypoint: etl

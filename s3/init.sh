@@ -103,7 +103,7 @@ if [ $? -eq 0 ]; then
     echo "IAM user '$IAM_USER' already exists."
 else
     echo "Create IAM User '$IAM_USER'"
-    aws iam create-user --user-name $IAM_USER
+    aws iam create-user --user-name $IAM_USER > /dev/null
     # 차트 설치를 위해 키 저장
     aws iam create-access-key --user-name $IAM_USER > /tmp/iam_key.json 
     echo "accessKey: $(jq '.AccessKey.AccessKeyId' /tmp/iam_key.json)" > svals/access-key.yaml
@@ -129,17 +129,19 @@ if [ $? -ne 0 ]; then
 EOF
     # 유저 정책 적용
     aws iam put-user-policy --user-name $IAM_USER --policy-name $USER_POLICY --policy-document file:///tmp/iam_policy.json
+    # IAM 정책이 적용될 때까지 시간이 걸림 
+    sleep 10    
 else
     echo "User policy '$USER_POLICY' already exists for '$IAM_USER'."
 fi 
 
 
 # 인그레스 주소 얻기
-echo "Fetch Ingress address."
 ret=$(kubectl get ingress -l 'app.kubernetes.io/name=argo-workflows' --no-headers | awk '{print $4}')
+echo "Ingress address '$ret'"
 echo "ingressAddr: $ret" > /tmp/ingress-addr.yaml
 # 이전 파일과 다를 때만 복사 (무한 배포 방지)
 if [ ! -f svals/ingress-addr.yaml ] || ! cmp -s /tmp/ingress-addr.yaml svals/ingress-addr.yaml; then 
-    echo "Overwrite to svals/ingress-addr.yaml"
+      echo "Overwrite to svals/ingress-addr.yaml"
     mv /tmp/ingress-addr.yaml svals/ingress-addr.yaml
 fi 
