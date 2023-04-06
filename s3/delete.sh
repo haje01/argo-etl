@@ -28,26 +28,6 @@ fi
 echo "Unset bucket notification."
 aws s3api put-bucket-notification-configuration --bucket $S3_BUCKET --notification-configuration '{}'
 
-# 알림 전용 IAM 유저 제거
-ret=$(aws iam get-user --user-name $IAM_USER 2>&1)
-if [ $? -ne 0 ]; then 
-    echo "Warning: IAM user '$IAM_USER' not exists."
-else
-    # IAM 유저 Access Key 제거
-    for akey in $(aws iam list-access-keys --user-name $IAM_USER --query 'AccessKeyMetadata[].AccessKeyId' --output text); do
-        echo "Delete access key '$akey' from IAM user '$IAM_USER'"
-        aws iam delete-access-key --user-name $IAM_USER --access-key-id $akey
-    done 
-    # IAM 유저 정책  제거
-    for policy in $(aws iam list-user-policies --user-name $IAM_USER --query 'PolicyNames' --output text); do
-        echo "Delete IAM policy '$policy' from IAM user '$IAM_USER'"
-        aws iam delete-user-policy --user-name $IAM_USER --policy-name $policy 
-    done 
-    sleep 5
-    echo "Delete IAM user '$IAM_USER'."
-    aws iam delete-user --user-name $IAM_USER
-fi 
-
 # Helm 차트 변수 파일 제거 
 rm -f svals/*.yaml
 

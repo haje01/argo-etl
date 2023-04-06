@@ -18,12 +18,6 @@ deploy:
       # 무한 배포를 막기 위해 변수별 파일 이용 
       valuesFiles:
       - svals/topic-arn.yaml
-      - svals/access-key.yaml
-      - svals/secret-key.yaml
       - svals/ingress-addr.yaml
-      # setValueTemplates:
-      #   awsAccessKey: "{{ .AWS_ACCESS_KEY_ID }}"
-      #   awsSecretKey: "{{ .AWS_SECRET_ACCESS_KEY }}"
-      #   project: "{{ .project }}"
-      #   s3bucket: "{{ .s3bucket }}"
-      #   s3prefix: "{{ .s3prefix }}"
+      setValueTemplates:
+        image: '{{.IMAGE_FULLY_QUALIFIED_s3_etl}}'

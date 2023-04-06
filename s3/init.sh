@@ -17,6 +17,8 @@ POLICY_ID="$PROJECT-s3-noti-policy"
 IAM_USER="$PROJECT-sns-noti"
 # IAM 유저 정책 이름
 USER_POLICY="$PROJECT-sns-noti-policy"
+# S3 정책 이름
+S3_POLICY="$PROJECT-s3-policy"
 
 # 버킷 존재 여부 확인 
 ret=$(aws s3api head-bucket --bucket "$S3_BUCKET" 2>&1)
@@ -97,25 +99,28 @@ else
     echo "Bucket notification already exists."
 fi 
 
-# 알림 전용 IAM 유저 생성
-ret=$(aws iam get-user --user-name $IAM_USER 2>&1)
-if [ $? -eq 0 ]; then 
-    echo "IAM user '$IAM_USER' already exists."
-else
-    echo "Create IAM User '$IAM_USER'"
-    aws iam create-user --user-name $IAM_USER > /dev/null
-    # 차트 설치를 위해 키 저장
-    aws iam create-access-key --user-name $IAM_USER > /tmp/iam_key.json 
-    echo "accessKey: $(jq '.AccessKey.AccessKeyId' /tmp/iam_key.json)" > svals/access-key.yaml
-    echo "secretKey: $(jq '.AccessKey.SecretAccessKey' /tmp/iam_key.json)" > svals/secret-key.yaml
-    rm /tmp/iam_key.json
+# 인그레스 주소 얻기
+ret=$(kubectl get ingress -l 'app.kubernetes.io/name=argo-workflows' --no-headers | awk '{print $4}')
+echo "Ingress address '$ret'"
+echo "ingressAddr: $ret" > /tmp/ingress-addr.yaml
+# 이전 파일과 다를 때만 복사 (무한 배포 방지)
+if [ ! -f svals/ingress-addr.yaml ] || ! cmp -s /tmp/ingress-addr.yaml svals/ingress-addr.yaml; then 
+      echo "Overwrite to svals/ingress-addr.yaml"
+    mv /tmp/ingress-addr.yaml svals/ingress-addr.yaml
 fi 
 
-ret=$(aws iam get-user-policy --user-name $IAM_USER --policy-name $USER_POLICY 2>/dev/null)
-if [ $? -ne 0 ]; then 
-    # 유저가 SNS 토픽 이벤트를 받을 수 있도록 정책 적용
-    echo "Apply IAM policy '$USER_POLICY' to IAM user '$IAM_USER'"
-    cat << EOF > /tmp/iam_policy.json
+#
+# 노드그룹 역할에 필요한 정책 추가 
+#
+
+# 노드 그룹 및 역할
+NODE_GROUP=$(aws eks list-nodegroups --cluster-name $EKS_CLUSTER --quer 'nodegroups[]' --output text)
+NODE_ROLE_ARN=$(aws eks describe-nodegroup --cluster-name $EKS_CLUSTER --nodegroup-name $NODE_GROUP --query 'nodegroup.nodeRole' --output text)
+NODE_ROLE=$(echo "$NODE_ROLE_ARN" | awk -F/ '{print $NF}')
+
+# SNS 구독
+echo "Apply SNS policy '$USER_POLICY' to node role '$NODE_ROLE'"
+cat << EOF > /tmp/subscribe_policy.json
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -127,21 +132,29 @@ if [ $? -ne 0 ]; then
     ]
 }
 EOF
-    # 유저 정책 적용
-    aws iam put-user-policy --user-name $IAM_USER --policy-name $USER_POLICY --policy-document file:///tmp/iam_policy.json
-    # IAM 정책이 적용될 때까지 시간이 걸림 
-    sleep 10    
-else
-    echo "User policy '$USER_POLICY' already exists for '$IAM_USER'."
-fi 
-
-
-# 인그레스 주소 얻기
-ret=$(kubectl get ingress -l 'app.kubernetes.io/name=argo-workflows' --no-headers | awk '{print $4}')
-echo "Ingress address '$ret'"
-echo "ingressAddr: $ret" > /tmp/ingress-addr.yaml
-# 이전 파일과 다를 때만 복사 (무한 배포 방지)
-if [ ! -f svals/ingress-addr.yaml ] || ! cmp -s /tmp/ingress-addr.yaml svals/ingress-addr.yaml; then 
-      echo "Overwrite to svals/ingress-addr.yaml"
-    mv /tmp/ingress-addr.yaml svals/ingress-addr.yaml
-fi 
+aws iam put-role-policy --role-name $NODE_ROLE --policy-name $S3_POLICY --policy-document file:///tmp/subscribe_policy.json
+# ECR 저장소 읽기
+aws iam attach-role-policy --role-name $NODE_ROLE --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+# S3 버킷에 읽고 쓰기 
+echo "Apply S3 policy '$S3_POLICY' to node role '$NODE_ROLE'"
+cat << EOF > /tmp/s3_policy.json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket",
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::$S3_BUCKET",
+                "arn:aws:s3:::$S3_BUCKET/*"
+            ]
+        }
+    ]
+}
+EOF
+aws iam put-role-policy --role-name $NODE_ROLE --policy-name $S3_POLICY --policy-document file:///tmp/s3_policy.json

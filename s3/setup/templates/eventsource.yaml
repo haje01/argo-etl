@@ -18,12 +18,5 @@ spec:
         port: "12000"
         method: POST
         url: http://{{ .Values.ingressAddr }}:12000
-      # 생성한 IAM 사용자의 증명 정보 
-      accessKey:
-        name: s3-iam-secret
-        key: accessKey
-      secretKey:
-        name: s3-iam-secret
-        key: secretKey
       # AWS 리전
       region: ap-northeast-2
