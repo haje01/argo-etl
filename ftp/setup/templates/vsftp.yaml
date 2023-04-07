@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vsftpd
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vsftpd
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vsftpd 
+    spec:
+      containers:
+      - name: vsftpd
+        image: fauria/vsftpd 
+        ports:
+        - containerPort: 21
+        - containerPort: 20
+        - containerPort: 30020
+        - containerPort: 30021
+        env:
+        - name: FTP_USER
+          value: admin
+        - name: FTP_PASS
+          value: admindjemals
+        - name: PASV_ADDRESS
+          value: {{ include "ftp.loadBalancerAddr" . }}
+        - name: PASV_ADDRESS_RESOLVE
+          value: "YES"
+        - name: PASV_ADDR_RESOLVE
+          value: "YES"
+        - name: PASV_MIN_PORT
+          value: "30020"
+        - name: PASV_MAX_PORT
+          value: "30021"
+        - name: PASV_ADDRESS_ENABLE
+          value: "YES"
+        - name: PASV_ENABLE
+          value: "YES"
+        - name: LOG_STDOUT
+          value: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vsftpd
+  labels:
+    app.kubernetes.io/name: vsftpd 
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-name: clb
+spec:
+  selector:
+    app.kubernetes.io/name: vsftpd
+  ports:
+  - name: ftp21
+    port: 21
+    targetPort: 21
+    nodePort: 30025
+  - name: ftp20
+    port: 20
+    targetPort: 20
+    nodePort: 30026
+  - name: pasv-min
+    port: 30020
+    targetPort: 30020
+    nodePort: 30020
+  - name: pasv-max
+    port: 30021
+    targetPort: 30021
+    nodePort: 30021
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ftp-secret
+type: Opaque
+data:
+  user: YWRtaW4=              # base64 인코딩한 FTP 유저 이름
+  password: YWRtaW5kamVtYWxz  # base64 인코딩한 FTP 유저 암호

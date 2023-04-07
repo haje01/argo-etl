@@ -1,4 +1,16 @@
 apiVersion: skaffold/v4beta3
 kind: Config
 metadata:
-  name: infra
+  name: setup
+build:
+  artifacts:
+  - image: ftp-etl 
+    context: etl 
+deploy:
+  helm:
+    releases:
+      - name: ftp
+        chartPath: setup
+        # 빌드 과정에서 생성된 컨테이너 이미지 이름을 변수로 전달한다.
+        setValueTemplates:
+          image: '{{.IMAGE_FULLY_QUALIFIED_s3_etl}}'        

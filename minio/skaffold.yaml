@@ -2,9 +2,8 @@ apiVersion: skaffold/v4beta3
 kind: Config
 metadata:
   name: minio-etl
-requires:
-- path: ../infra
 build:
+  # ETL 코드를 실행할 컨테이너 이미지. `etl` 폴더에 정보가 있다.
   artifacts:
   - image: minio-etl
     context: etl

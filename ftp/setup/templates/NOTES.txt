@@ -1,0 +1,3 @@
+FTP 접속 주소:
+  export FTP_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name=vsftpd" -o jsonpath="{.items[0].status.loadBalancer.ingress[0].hostname}")
+  echo $FTP_IP

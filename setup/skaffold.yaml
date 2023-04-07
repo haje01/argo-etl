@@ -1,7 +1,7 @@
 apiVersion: skaffold/v4beta3
 kind: Config
 metadata:
-  name: infra
+  name: setup
 profiles:
   # 로컬 (Minikube) 인프라 설치
 - name: local

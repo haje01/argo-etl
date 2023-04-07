@@ -154,4 +154,4 @@ EOF
 aws iam put-role-policy --role-name $NODE_ROLE --policy-name $S3_POLICY --policy-document file:///tmp/s3_policy.json
 
 # 정책이 적용되게 잠시 대기
-sleep 10
+sleep 15

@@ -26,4 +26,4 @@ aws s3api put-bucket-notification-configuration --bucket $S3_BUCKET --notificati
 rm -f vals/*.yaml
 
 # 커스텀 리소스 제거 
-kubectl delete eventsource s3 --ignore-not-found
+# kubectl delete eventsource s3 --ignore-not-found
