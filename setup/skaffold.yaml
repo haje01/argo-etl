@@ -47,13 +47,6 @@ profiles:
       localPort: 8046
   # AWS EKS 인프라 설치
 - name: eks
-    # artifacts:
-    # - image: eks-init
-    #   context: eks
-    #   # 이미지 저장소에 push 가능하도록 login 
-    #   hooks:
-    #     before:
-    #     - command: ['sh', '-c', ' aws ecr get-login-password | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.ap-northeast-2.amazonaws.com']
   manifests:
     rawYaml:
     - k8s/*.yaml
@@ -82,10 +75,5 @@ profiles:
         remoteChart: argo-workflows
         valuesFiles:
         - eks/awf-values.yaml
-      # - name: eks-init
-      #   chartPath: eks/eks-init
-      #   setValueTemplates:
-      #     awsAccessKey: "{{ .AWS_ACCESS_KEY_ID }}"
-      #     awsSecretKey: "{{ .AWS_SECRET_ACCESS_KEY }}"
     kubectl: {}
   
