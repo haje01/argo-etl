@@ -4,13 +4,36 @@ metadata:
   name: setup
 build:
   artifacts:
+  - image: ftp-evtsrv
+    context: evtsrv
   - image: ftp-etl 
-    context: etl 
+    context: etl
 deploy:
   helm:
+    hooks:
+      # 로드 밸런서 주소 확보 후 FTP 및 이벤트 소스에 그것을 알려줌 
+      after:
+      - host:
+          command:
+          - /bin/sh
+          - -c 
+          - |
+            set -e
+            echo "Waiting for LoadBalancer to be ready..."
+            while [ -z "$LB_ADDR" ]; do
+              sleep 5
+              LB_ADDR=$(kubectl get svc vsftpd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            done
+            echo "LoadBalancer address: $LB_ADDR"
+            echo "Patch vsftpd deployment."
+            kubectl patch deployment vsftpd -p '{"spec":{"template":{"spec":{"containers":[{"name": "vsftpd","env":[{"name":"PASV_ADDRESS","value":"'$LB_ADDR'"}]}]}}}}'
+            # echo "Patch FTP deployment."
+            # kubectl patch deployment ftp-evtsrv -p '{"spec":{"template":{"spec":{"containers":[{"name": "ftp-evtsrv","env":[{"name":"FTP_ADDR","value":"'$LB_ADDR'"}]}]}}}}'
+          os: [darwin, linux]
     releases:
       - name: ftp
         chartPath: setup
         # 빌드 과정에서 생성된 컨테이너 이미지 이름을 변수로 전달한다.
         setValueTemplates:
-          image: '{{.IMAGE_FULLY_QUALIFIED_s3_etl}}'        
+          image: '{{.IMAGE_FULLY_QUALIFIED_ftp_etl}}' 
+         

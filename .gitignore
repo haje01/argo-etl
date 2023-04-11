@@ -130,3 +130,4 @@ dmypy.json
 
 iam_policy.json
 s3/vals/*.yaml
+.vscode/

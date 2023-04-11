@@ -8,12 +8,32 @@
 EKS_CLUSTER=${EKS_CLUSTER?"Need to set EKS_CLUSTER"}
 echo "Target EKS cluster '$EKS_CLUSTER'"
 
+# 클라우드 스택 지우기
+CL_STACK="eksctl-$EKS_CLUSTER-cluster"
+ret=$(aws cloudformation describe-stacks --stack-name $CL_STACK 2>/dev/null)
+if [ -n "$ret" ]; then 
+    echo "[ ] Delete CloudFormation stack '$CL_STACK'"
+    aws cloudformation delete-stack --stack-name $CL_STACK
+    echo "[v] Delete CloudFormation stack '$CL_STACK'"
+fi 
+
+# EKS 클러스터가 있으면
 ret=$(aws eks describe-cluster --name "$EKS_CLUSTER" 2>/dev/null)
 if [ -n "$ret" ];  then
     # EKS 클러스터의 VPC
     VPC_ID=$(aws eks describe-cluster --name $EKS_CLUSTER | jq -r '.cluster.resourcesVpcConfig.vpcId')
     # VPC 의 이름
     VPC_NAME=$(aws ec2 describe-tags --filters "Name=resource-id,Values=$VPC_ID" "Name=key,Values=Name" | jq -r '.Tags[0].Value')
+
+    # EKS 클러스터의 노드그룹 삭제 
+    for ng in $(aws eks list-nodegroups --cluster-name $EKS_CLUSTER --output text);
+    do 
+        echo "[ ] Delete node group '$ng'"
+        aws eks delete-nodegroup --cluster-name $EKS_CLUSTER --nodegroup-name $ng
+        if [ $? -eq 0 ]; then 
+            echo "[v] Delete node group '$ng'"
+        fi
+    done 
 else 
     echo "No EKS cluster '$EKS_CLUSTER' exists."
     VPC_NAME="eksctl-$EKS_CLUSTER-cluster/VPC"
@@ -27,15 +47,22 @@ if [ "$VPC_NAME" = "Default" ]; then
     exit 0
 fi
 
-# EKS 클러스터의 노드그룹 삭제 
-for ng in $(aws eks list-nodegroups --cluster-name $EKS_CLUSTER --output text);
+# 이후 작업은 VPC 가 존재하는 경우만 수행
+if [ "$VPC_ID" = "None" ]; then 
+    echo "VPC does not exists."
+    exit 0
+fi
+
+# 로드밸런서 삭제 (ALB 및 Network LB)
+load_balancer_arns=$(aws elbv2 describe-load-balancers --query "LoadBalancers[?VpcId=='$VPC_ID'].LoadBalancerArn" --output json | jq -r '.[]')
+for arn in $load_balancer_arns
 do 
-    echo "[ ] Delete node group '$ng'"
-    aws eks delete-nodegroup --cluster-name $EKS_CLUSTER --nodegroup-name $ng
-    if [ $? -eq 0 ]; then 
-        echo "[v] Delete node group '$ng'"
-    fi
-done 
+    echo "[ ] Delete load balancer '$arn'"
+    aws elbv2 delete-load-balancer --load-balancer-arn "$arn"
+    echo "[v] Delete load balancer '$arn'"
+    # 잠시 기다림
+    sleep 10
+done
 
 # NAT 게이트웨이 삭제
 for ngi in $(aws ec2 describe-nat-gateways --filter "Name=vpc-id,Values=$VPC_ID" --query 'NatGateways[].NatGatewayId' --output text);
@@ -124,7 +151,7 @@ done
 
 
 # VPC 내의 모든 Security Group 삭제
-for sgi in $(aws ec2 describe-security-groups --filters Name=vpc-id,Values=$VPC_ID --query 'SecurityGroups[*].GroupId' --output text); 
+for sgi in $(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" --query 'SecurityGroups[*].GroupId' --output text); 
 do
     echo "[ ] Delete security group $sgi"
     aws ec2 delete-security-group --group-id $sgi

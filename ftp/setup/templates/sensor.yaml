@@ -1,0 +1,61 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: ftp
+spec:
+  template:
+    # 만들어둔 Service Account 이용
+    serviceAccountName: operate-workflow-sa
+  # 의존하는 이벤트
+  dependencies:
+  - name: ftp-dep
+    eventSourceName: ftp
+    eventName: ftp
+  triggers:
+  - template:
+      name: ftp-workflow-trigger
+      k8s:
+        # ETL 워크플로우 실행
+        operation: create
+        source:
+          resource:
+            apiVersion: argoproj.io/v1alpha1
+            kind: Workflow
+            metadata:
+              generateName: ftp-  # 워크플로우 생성 이름 
+            spec:
+              # 시작 템플릿 지정
+              entrypoint: etl
+              # 인자값. 설정 (이벤트가 발생될 때 건네진다.)
+              arguments:
+                parameters:
+                - name: config
+              # FTP ETL 템플릿을 정의 
+              templates:
+              - name: etl
+                inputs:
+                  # 매개변수
+                  parameters:
+                  - name: config
+                container:
+                  image: {{ .Values.image }}
+                  command: [python]
+                  args: ['/etl.py', '{{ "{{" }} inputs.parameters.snsmsg {{ "}}" }}']
+                # FTP 사용자 및 암호를 Secret 에서 환경변수로 전달 
+                env: 
+                - name: FTP_USER
+                  valueFrom:
+                    secretKeyRef:
+                        name: ftp-secret
+                        key: user
+                - name: FTP_PASSWD
+                  valueFrom:
+                    secretKeyRef:
+                        name: ftp-secret
+                        key: passwd
+                outputs:
+                  # 결과 파일에서 출력 아티팩트 생성 
+                  artifacts:
+                  - name: output-art            # 출력 아티팩트 이름 
+                    path: /tmp/output.parquet   # 출력 아티팩트 소스 파일
+                    archive: {}  # 파케이 파일의 경우 별도 압축하지 않음 

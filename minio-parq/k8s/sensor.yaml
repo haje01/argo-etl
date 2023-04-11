@@ -41,7 +41,7 @@ spec:
                   - name: bucket
                   - name: key
                 container:
-                  image: minio-parq
+                  image: minio-parq-etl
                   command: [python]
                   args: ['/etl.py', '{{inputs.parameters.bucket}}', '{{inputs.parameters.key}}']
                   # MinIO 사용자 및 암호를 Secret 에서 환경변수로 전달 

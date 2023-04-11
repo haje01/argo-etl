@@ -6,7 +6,7 @@ requires:
 - path: ../infra
 build:
   artifacts:
-  - image: minio-parq
+  - image: minio-parq-etl
     context: etl
 manifests:
   rawYaml:

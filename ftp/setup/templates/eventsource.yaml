@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: ftp
+spec:
+  generic:
+    ftp:
+      insecure: true
+      # 이벤트 서버 주소 
+      url: "ftp-evtsrv-svc:5051"
+      config: |
+        # FTP 호스트 주소
+        host: vsftpd
+        # FTP 시작 디렉토리
+        dir: /
+        # FTP Passive 모드 여부
+        passive: true
+        # 크기 정보 필드
+        szfield: 4
+        # 갱신 일시 정보 필드 
+        dtfields: [-4, -3, -2]

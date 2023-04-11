@@ -24,8 +24,6 @@ spec:
           value: admin
         - name: FTP_PASS
           value: admindjemals
-        - name: PASV_ADDRESS
-          value: {{ include "ftp.loadBalancerAddr" . }}
         - name: PASV_ADDRESS_RESOLVE
           value: "YES"
         - name: PASV_ADDR_RESOLVE
@@ -56,19 +54,15 @@ spec:
   - name: ftp21
     port: 21
     targetPort: 21
-    nodePort: 30025
   - name: ftp20
     port: 20
     targetPort: 20
-    nodePort: 30026
   - name: pasv-min
     port: 30020
     targetPort: 30020
-    nodePort: 30020
   - name: pasv-max
     port: 30021
     targetPort: 30021
-    nodePort: 30021
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -79,3 +73,32 @@ type: Opaque
 data:
   user: YWRtaW4=              # base64 인코딩한 FTP 유저 이름
   password: YWRtaW5kamVtYWxz  # base64 인코딩한 FTP 유저 암호
+---
+# # LB 주소 확보되면 vsftpd 환경 변수 지정 
+# apiVersion: batch/v1
+# kind: Job
+# metadata:
+#   name: get-lb-address
+#   annotations:
+#     "helm.sh/hook": post-install,post-upgrade
+#     "helm.sh/hook-weight": "5"
+#     "helm.sh/hook-delete-policy": hook-succeeded 
+# spec:
+#   template:
+#     spec:
+#       containers:
+#       - name: get-lb-address
+#         image: bitnami/kubectl
+#         command:
+#         - /bin/sh
+#         - -c 
+#         - |
+#           set -e
+#           echo "Waiting for LoadBalancer to be ready..."
+#           while [ -z "$LB_ADDR" ]; do
+#             sleep 5
+#             LB_ADDR=$(kubectl get svc vsftpd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+#           done
+#           echo "LoadBalancer address: $LB_ADDR"
+#           kubectl patch deployment vsftpd -p '{"spec":{"template":{"spec":{"containers":[{"name": "vsftpd","env":[{"name":"PASV_ADDRESS","value":"$LB_ADDR"}]}]}}}}'
+#       restartPolicy: OnFailure
