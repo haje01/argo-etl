@@ -127,8 +127,8 @@ cat << EOF > /tmp/sns_policy.json
 }
 EOF
 aws iam put-role-policy --role-name $NODE_ROLE --policy-name $SNS_POLICY --policy-document file:///tmp/sns_policy.json
-# ECR 저장소 읽기
-aws iam attach-role-policy --role-name $NODE_ROLE --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+# ECR 저장소 읽기 (기본?!)
+# aws iam attach-role-policy --role-name $NODE_ROLE --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
 # S3 버킷에 읽고 쓰기 
 echo "Apply S3 policy '$S3_POLICY' to node role '$NODE_ROLE'"
 cat << EOF > /tmp/s3_policy.json

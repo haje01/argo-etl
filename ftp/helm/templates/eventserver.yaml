@@ -23,15 +23,9 @@ spec:
         # FTP 접속 정보
         env: 
         - name: FTP_USER
-          valueFrom:    
-            secretKeyRef:
-              name: ftp-secret
-              key: user
+          value: {{ .Values.ftpUser }}
         - name: FTP_PASSWD
-          valueFrom:    
-            secretKeyRef:
-              name: ftp-secret
-              key: password
+          value: {{ .Values.ftpPasswd }}
 ---
 apiVersion: v1
 kind: Service

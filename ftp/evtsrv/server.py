@@ -73,15 +73,12 @@ class Eventing(generic_pb2_grpc.EventingServicer):
         ftp.retrlines('LIST -R', lambda line: _append_file(prev_files, line, szfields, dtfields))
         pcnt = len(prev_files)
         if pcnt > 0:
-            log.warning("Ignore {pcnt} previously existing files :")
+            log.warning(f"Ignore {pcnt} previously existing files :")
             for fname in prev_files.keys():
                 log.warning(f"  {fname}")
                                                            
         # FTP 파일 변경을 모니터링
         while True:
-            # 10 초에 한 번씩 바뀐 파일 검사 
-            time.sleep(10)
-
             cur_files = {}
             try:
                 # 현재 파일 정보 수집
@@ -95,7 +92,10 @@ class Eventing(generic_pb2_grpc.EventingServicer):
                 else:
                     log.error(se)
                     raise e
-                
+
+            # 10 초에 한 번씩 바뀐 파일 검사 
+            time.sleep(10)
+
             # 새로운 또는 갱신된 파일 정보 전송 
             for fname, info in cur_files.items():
                 event = None
@@ -114,6 +114,7 @@ class Eventing(generic_pb2_grpc.EventingServicer):
                 # 생성 / 변경된 파일이 있으면 알림
                 if event is not None:
                     payload = json.dumps(info).encode()
+                    log.info("Send event")
                     yield generic_pb2.Event(name=event, payload=payload)
                     prev_files[fname] = info
 

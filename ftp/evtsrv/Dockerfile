@@ -1,8 +1,8 @@
 FROM python:3.10-bullseye
 
-RUN pip install pyyaml
-RUN pip install grpcio
-RUN pip install grpcio-tools
+RUN pip install --no-cache-dir pyyaml
+RUN pip install --no-cache-dir grpcio
+RUN pip install --no-cache-dir grpcio-tools
 
 COPY --chown=python:python generic_pb2.py .
 COPY --chown=python:python generic_pb2_grpc.py .

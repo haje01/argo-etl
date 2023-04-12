@@ -42,7 +42,7 @@ spec:
                   image: {{ .Values.image }}
                   command: [python]
                   args: ['/etl.py', '{{ "{{" }} inputs.parameters.snsmsg {{ "}}" }}']
-          # 매개 변수. SNS 이벤트 정보 (Notification) 를 읽어 워크플로우의 인자값을 덮어 씀
+        # 매개 변수. SNS 이벤트 정보 (Notification) 를 읽어 워크플로우의 인자값을 덮어 씀
         parameters:
         - src:
             dependencyName: s3-dep

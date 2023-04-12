@@ -40,22 +40,22 @@ spec:
                 container:
                   image: {{ .Values.image }}
                   command: [python]
-                  args: ['/etl.py', '{{ "{{" }} inputs.parameters.snsmsg {{ "}}" }}']
-                # FTP 사용자 및 암호를 Secret 에서 환경변수로 전달 
-                env: 
-                - name: FTP_USER
-                  valueFrom:
-                    secretKeyRef:
-                        name: ftp-secret
-                        key: user
-                - name: FTP_PASSWD
-                  valueFrom:
-                    secretKeyRef:
-                        name: ftp-secret
-                        key: passwd
-                outputs:
-                  # 결과 파일에서 출력 아티팩트 생성 
-                  artifacts:
-                  - name: output-art            # 출력 아티팩트 이름 
-                    path: /tmp/output.parquet   # 출력 아티팩트 소스 파일
-                    archive: {}  # 파케이 파일의 경우 별도 압축하지 않음 
+                  args: ['/etl.py', '{{ "{{" }} inputs.parameters.config {{ "}}" }}']
+                  # FTP 사용자 및 암호를 환경변수로 전달 
+                  env: 
+                  - name: FTP_HOST
+                    value: {{ .Values.ftpHost }}
+                  - name: FTP_USER
+                    value: {{ .Values.ftpUser }}
+                  - name: FTP_PASSWD
+                    value: {{ .Values.ftpPasswd }}
+                  - name: S3_BUCKET 
+                    value: {{ .Values.s3Bucket }}
+                  - name: S3_PREFIX
+                    value: {{ .Values.s3Prefix }}
+        # 매개 변수. SNS 이벤트 정보 (Notification) 를 읽어 워크플로우의 인자값을 덮어 씀
+        parameters:
+        - src:
+            dependencyName: ftp-dep
+            dataKey: body
+          dest: spec.arguments.parameters.0.value

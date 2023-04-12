@@ -63,13 +63,9 @@ spec:
                     path: /tmp/output.parquet   # 출력 아티팩트 소스 파일
                     archive: {}  # 파케이 파일의 경우 별도 압축하지 않음 
             
-        # 매개 변수. MinIO 이벤트 정보 (Notification) 를 읽어 워크플로우의 인자값을 덮어 씀
+        # 매개 변수. FTP 이벤트 정보를 읽어 워크플로우의 인자값을 덮어 씀
         parameters:
         - src:
-            dependencyName: minio-dep
-            dataKey: notification.0.s3.bucket.name
+            dependencyName: s3-dep
+            dataKey: body
           dest: spec.arguments.parameters.0.value
-        - src:
-            dependencyName: minio-dep
-            dataKey: notification.0.s3.object.key
-          dest: spec.arguments.parameters.1.value

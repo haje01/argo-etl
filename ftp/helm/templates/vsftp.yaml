@@ -21,9 +21,9 @@ spec:
         - containerPort: 30021
         env:
         - name: FTP_USER
-          value: admin
+          value: {{ .Values.ftpUser }}
         - name: FTP_PASS
-          value: admindjemals
+          value: {{ .Values.ftpPasswd }}
         - name: PASV_ADDRESS_RESOLVE
           value: "YES"
         - name: PASV_ADDR_RESOLVE
@@ -64,15 +64,6 @@ spec:
     port: 30021
     targetPort: 30021
   type: LoadBalancer
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: ftp-secret
-type: Opaque
-data:
-  user: YWRtaW4=              # base64 인코딩한 FTP 유저 이름
-  password: YWRtaW5kamVtYWxz  # base64 인코딩한 FTP 유저 암호
 ---
 # # LB 주소 확보되면 vsftpd 환경 변수 지정 
 # apiVersion: batch/v1

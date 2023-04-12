@@ -1,0 +1,3 @@
+ftpHost: vsftpd
+ftpUser: admin
+ftpPasswd: djemals

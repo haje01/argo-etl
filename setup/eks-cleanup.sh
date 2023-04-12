@@ -101,18 +101,20 @@ do
     fi
 done 
 
-# EKS 클러스터 VPC 내 모든 네트워크 인터페이스 Attachment 떼기
-for nti in $(aws ec2 describe-network-interfaces --filters "Name=vpc-id,Values=$VPC_ID" --query 'NetworkInterfaces[*].NetworkInterfaceId' --output text)
-do 
-    for atc in $(aws ec2 describe-network-interfaces --network-interface-ids $nti --query 'NetworkInterfaces[*].Attachment.AttachmentId' --output text)
-    do 
-        echo "[ ] Detach attachment '$atc' from network interface '$nti'"
-        aws ec2 detach-network-interface --attachment-id $atc
-        if [ $? -eq 0 ]; then 
-            echo "[v] Detach attachment '$atc' from network interface '$nti'"
-        fi 
-    done
-done
+# 로드밸런서 제거 후 시도하면 You do not have permission 에러 발생 
+# 기다리면 자동으로 떼지는 듯?!
+# EKS 클러스터 VPC 내 모든 네트워크 인터페이스 Attachment 떼기 
+# for nti in $(aws ec2 describe-network-interfaces --filters "Name=vpc-id,Values=$VPC_ID" --query 'NetworkInterfaces[*].NetworkInterfaceId' --output text)
+# do 
+#     for atc in $(aws ec2 describe-network-interfaces --network-interface-ids $nti --query 'NetworkInterfaces[*].Attachment.AttachmentId' --output text)
+#     do 
+#         echo "[ ] Detach attachment '$atc' from network interface '$nti'"
+#         aws ec2 detach-network-interface --attachment-id $atc
+#         if [ $? -eq 0 ]; then 
+#             echo "[v] Detach attachment '$atc' from network interface '$nti'"
+#         fi 
+#     done
+# done
 
 # 인터넷 게이트웨이 삭제
 for igw in $(aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$VPC_ID" --query "InternetGateways[*].InternetGatewayId" --output text)
@@ -197,16 +199,6 @@ fi
 # done
 
 # # VPC 에서 Public 주소 떼기
-
-
-# # 인터넷 게이트웨이 삭제
-# for igw in $(aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$VPC_ID" --query "InternetGateways[*].InternetGatewayId" --output text)
-# do
-#     echo "[ ] Delete internet gateway '$igw'"
-#     aws ec2 detach-internet-gateway --internet-gateway-id "$igw" --vpc-id "$VPC_ID"
-#     aws ec2 delete-internet-gateway --internet-gateway-id "$igw"
-#     echo "[v] Delete internet gateway '$igw'"
-# done 
 
 # # 서브넷 삭제
 # for subnet in $(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" --query "Subnets[*].SubnetId" --output text)
