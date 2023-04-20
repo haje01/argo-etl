@@ -18,7 +18,7 @@ deploy:
           os: [darwin, linux]  
     releases:
     - name: s3-sns
-      chartPath: setup
+      chartPath: helm
       # 무한 배포를 막기 위해 변수별 파일 이용 
       valuesFiles:
       - vals/topic-arn.yaml

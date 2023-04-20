@@ -21,4 +21,4 @@ deploy:
       after:
       # MinIO 에 etlproj 버킷 생성 
       - host:
-          command: ['sh', '-c', "POD=$(kubectl get pods -l 'app.kubernetes.io/instance=minio' -o=jsonpath='{.items[0].metadata.name}') && kubectl exec $POD -- mc alias set my http://localhost:9000 admin adminpass && kubectl exec $POD -- mc mb -p my/etlproj"]
+          command: ['sh', '-c', "POD=$(kubectl get pods -l 'app.kubernetes.io/instance=minio' -o=jsonpath='{.items[0].metadata.name}') && kubectl exec $POD -- mc alias set my http://localhost:9000 admin admindjemals && kubectl exec $POD -- mc mb -p my/etlproj"]

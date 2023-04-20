@@ -28,6 +28,26 @@ if [ -n "$ret" ];  then
     # EKS 클러스터의 노드그룹 삭제 
     for ng in $(aws eks list-nodegroups --cluster-name $EKS_CLUSTER --output text);
     do 
+        # TODO: 테스트 가능한 환경에서 이 부분 완성하기!!
+        echo "Implement node group inline role clean up!!"
+        exit 1
+        # 노드그룹의 역할 삭제
+        for role in $(aws eks describe-nodegroup --cluster-name $EKS_CLUSTER --nodegroup-name $ng --output text);
+        do 
+            echo "[ ] Delete node group role '$role'"
+            aws iam delete-role --role-name $role
+            echo "[v] Delete node group role '$role'"
+            # 필요시 인라인 정책 먼저 지워야 함
+            # for policy in $(aws iam list-role-policies --role-name $role --output text);
+            # do 
+            #     echo "[ ] Delete node group role '$role' inline policy '$policy'"
+            #     aws iam delete-role-policy --role-name $role --policy-name $policy
+            #     if [ $? -eq 0 ]; then 
+            #         echo "[v] Delete node group role '$role' inline policy '$policy'"
+            #     fi
+            # done
+        done 
+
         echo "[ ] Delete node group '$ng'"
         aws eks delete-nodegroup --cluster-name $EKS_CLUSTER --nodegroup-name $ng
         if [ $? -eq 0 ]; then 
@@ -61,7 +81,7 @@ do
     aws elbv2 delete-load-balancer --load-balancer-arn "$arn"
     echo "[v] Delete load balancer '$arn'"
     # 잠시 기다림
-    sleep 10
+    sleep 15
 done
 
 # NAT 게이트웨이 삭제
@@ -88,8 +108,10 @@ do
         echo "[v] Delete NAT gateway '$ngi'"
     fi
 
+    # 잠시 기다림
+    sleep 15
+
     # Elastic IP 주소 할당이 존재하면 
-    echo "Check IP Acclocation '$ali'"
     ret=$(aws ec2 describe-addresses --allocation-ids $ali --query 'Addresses[].AllocationId' --output text 2>/dev/null)
     if [ -n "$ret" ]; then 
         # Elastic IP 주소를 할당 취소
@@ -131,6 +153,20 @@ do
     fi
 done 
 
+# EKS 클러스터 VPC 내 모든 네트워크 인터페이스 Attachment 떼기 (의존성 해결에 별 소용 없는 듯?)
+# for nti in $(aws ec2 describe-network-interfaces --filters "Name=vpc-id,Values=$VPC_ID" --query 'NetworkInterfaces[*].NetworkInterfaceId' --output text)
+# do 
+#     for atc in $(aws ec2 describe-network-interfaces --network-interface-ids $nti --query 'NetworkInterfaces[*].Attachment.AttachmentId' --output text)
+#     do 
+#         echo "[ ] Detach attachment '$atc' from network interface '$nti'"
+#         aws ec2 detach-network-interface --attachment-id $atc
+#         if [ $? -eq 0 ]; then 
+#             echo "[v] Detach attachment '$atc' from network interface '$nti'"
+#         fi 
+#     done
+# done
+
+
 # EKS 클러스터 VPC 내 모든 네트워크 인터페이스 제거
 for nti in $(aws ec2 describe-network-interfaces --filters "Name=vpc-id,Values=$VPC_ID" --query 'NetworkInterfaces[*].NetworkInterfaceId' --output text)
 do 
@@ -152,15 +188,15 @@ do
 done 
 
 
-# VPC 내의 모든 Security Group 삭제
-for sgi in $(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" --query 'SecurityGroups[*].GroupId' --output text); 
-do
-    echo "[ ] Delete security group $sgi"
-    aws ec2 delete-security-group --group-id $sgi
-    if [ $? -eq 0 ]; then 
-        echo "[v] Delete security group $sgi"
-    fi
-done
+# VPC 내의 모든 Security Group 삭제 (필요 없는듯?)
+# for sgi in $(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" --query 'SecurityGroups[*].GroupId' --output text); 
+# do
+#     echo "[ ] Delete security group $sgi"
+#     aws ec2 delete-security-group --group-id $sgi
+#     if [ $? -eq 0 ]; then 
+#         echo "[v] Delete security group $sgi"
+#     fi
+# done
 
 # VPC 삭제
 echo "[ ] Delete VPC '$VPC_ID'"

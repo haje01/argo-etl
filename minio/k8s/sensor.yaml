@@ -15,7 +15,7 @@ spec:
   - template:
       name: minio-workflow-trigger
       k8s:
-        # 컨테이너에 마운트된 ETL 워크플로우 실행 (생성) 
+        # 워크플로우 실행 (생성) 
         operation: create
         source:
           resource: 
